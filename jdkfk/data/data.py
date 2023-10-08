@@ -78,7 +78,36 @@ class Dataset:
 
 
 
+    #interquartile test for sat @ TOFF
+    def interquartile_filter(
+            self, 
+            col:str, 
+            hist:bool=False, 
+            factor:float=1.5):
+        
+        """
+        _summary_
+        """
+        
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+        perc25 = self.df[col].describe()['25%']
+        perc75 = self.df[col].describe()['75%']
+        iqr = (perc75 - perc25) * factor
 
+        self.df[f'{col}_iqr_outliers'] = False
+        self.df.loc[
+            ((self.df[f'{col}']<perc25-iqr) |
+            (self.df[f'{col}']>perc75+iqr)) &
+            (self.df[f'{col}']!=0),
+            f'{col}_iqr_outliers'] = True
 
+        if hist:
+            fig, ax = plt.subplots()
+
+            ax = sns.histplot(data=self.df, x=col, hue=f'{col}_iqr_outliers')
+            fig.savefig(f'{col}_iqr_outlier_hist.pdf')
+
+            del(fig)
 
 
