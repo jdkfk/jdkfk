@@ -1,17 +1,19 @@
-
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os   
+import sys
 
 class Dataset:
     
-    import pandas as pd
-    def __init__(self, dataframe:pd.DataFrame):
+    def __init__(self,
+                 dataframe:pd.DataFrame):
         self.df = dataframe.copy()
         print(self.df.describe())
-    
 
-
-    def describe_data(self, 
-                      to_txt:bool=False, 
-                      hist:bool=False, 
+    def describe_data(self,
+                      to_txt:bool=False,
+                      hist:bool=False,
                       path:str=r'./'):
         """
         data aggregation
@@ -21,7 +23,6 @@ class Dataset:
             path -- _description_ (default: {r'./'})
         """
         def _aggregates():
-            import pandas as pd
             for col in self.df.columns:
                 print(col)
                 print(f'Count: {self.df[col].count()}')
@@ -44,10 +45,7 @@ class Dataset:
                 print('\n')
             
         def _histograms():
-            import matplotlib.pyplot as plt
-            import seaborn as sns
-            import pandas as pd
-            import os
+            
             for col in self.df.columns:
                 if pd.api.types.is_numeric_dtype(self.df[col]):
                     print(f'{col} histogram is being made')
@@ -59,11 +57,9 @@ class Dataset:
                         os.mkdir(r'./figures')
                     del(fig)
                     del(ax)
-                    
         
         if to_txt:
             # Reroute standard output to a text file
-            import sys
             stdout_orig=sys.stdout
             with open('data_description.txt', 'w') as file:
                 sys.stdout = file
@@ -75,39 +71,50 @@ class Dataset:
         if hist:
             _histograms()
 
-
-
-
     #interquartile test for sat @ TOFF
     def interquartile_filter(
-            self, 
-            col:str, 
-            hist:bool=False, 
+            self,
+            col:str,
+            path:str=r'./',
+            hist:bool=False,
             factor:float=1.5):
         
-        """
-        _summary_
-        """
+        def _histogram(col):
+            if hist:
+                fig, ax = plt.subplots()
+
+                ax = sns.histplot(data=self.df, x=col, hue=f'{col}_iqr_outliers')
+            
+                try:
+                    fig.savefig(f'./figures/{col}_hist.pdf')
+                except:
+                    os.mkdir(r'./figures')
+                    fig.savefig(os.path.join(path,f'{col}_iqr_outlier_hist.pdf'))
+
+                del(fig)
+
+        def _outliers(col):
+            perc25 = self.df[col].describe()['25%']
+            perc75 = self.df[col].describe()['75%']
+            iqr = (perc75 - perc25) * factor
+
+            self.df[f'{col}_iqr_outliers'] = False
+            self.df.loc[
+                ((self.df[f'{col}']<perc25-iqr) |
+                (self.df[f'{col}']>perc75+iqr)) &
+                (self.df[f'{col}']!=0),
+                f'{col}_iqr_outliers'] = True
         
-        import seaborn as sns
-        import matplotlib.pyplot as plt
-        perc25 = self.df[col].describe()['25%']
-        perc75 = self.df[col].describe()['75%']
-        iqr = (perc75 - perc25) * factor
-
-        self.df[f'{col}_iqr_outliers'] = False
-        self.df.loc[
-            ((self.df[f'{col}']<perc25-iqr) |
-            (self.df[f'{col}']>perc75+iqr)) &
-            (self.df[f'{col}']!=0),
-            f'{col}_iqr_outliers'] = True
-
-        if hist:
-            fig, ax = plt.subplots()
-
-            ax = sns.histplot(data=self.df, x=col, hue=f'{col}_iqr_outliers')
-            fig.savefig(f'{col}_iqr_outlier_hist.pdf')
-
-            del(fig)
 
 
+        if col=='':
+            for column in [col for col in self.df.columns if col in ['int64', 'float64']]:
+                _outliers(column)
+        
+        else:
+            _outliers(col)
+
+    def normalize(self, col:str):
+        if col in self.df.columns:
+            if self.df[col].dtype in ['float64', 'int64']:
+                self.df[f'{col}_norm'] = self.df[col]/abs(self.df[col].max())
