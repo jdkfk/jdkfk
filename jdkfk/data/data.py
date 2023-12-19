@@ -131,7 +131,10 @@ class Dataset:
         else:
             _outliers(col)
 
-    def normalize(self, col:str):
+    def normalize(
+        self,
+        col:str,
+        weight:float=1.0):
         """
         Normalize columns from the containing dataframe.
 
@@ -141,14 +144,18 @@ class Dataset:
 
         Arguments:
             col -- name of the column to be normalized
-        """        
+        """       
         if col in self.df.columns:
             if self.df[col].dtype in ['float64', 'int64']:
                 self.df[f'{col}_norm'] = self.df[col]/max(
                     abs(self.df[col].max()),
-                    abs(self.df[col].min()))
+                    abs(self.df[col].min())) * weight
 
-    def k_means_cluster(self,cols:list,clusters:int=3):
+    def k_means_cluster(
+        self,
+        cols:list,
+        col_weights:list=[],
+        clusters:int=3):
         """
         k_means_cluster performs clustering of columns in a number of clusters
 
@@ -166,9 +173,18 @@ class Dataset:
         """
         norm_cols = [f'{col}_norm' for col in cols]
         cluster_column_name = '_'.join(cols)
+        
+        if (len(cols) != len(col_weights) & len(col_weights) > 0) | (len(col_weights) == 0):
+            if len(col_weights)>0:
+                print('Column weights has been ignored due to a length mismatch.')
+            col_weights = [1 for col in col_weights]
+
+        weight_dict = dict(zip(cols,col_weights))
+
         for col in cols:
-            self.normalize(col)
-        X = self.df.loc[:,norm_cols]
+            self.normalize(col,weight=weight_dict[col])
+
+        _X = self.df.loc[:,norm_cols]
         kmeans = KMeans(n_clusters=clusters)
-        kmeans.fit(X)
-        self.df[f'{cluster_column_name}_cluster']=kmeans.predict(X)
+        kmeans.fit(_X)
+        self.df[f'{cluster_column_name}_cluster']=kmeans.predict(_X)
