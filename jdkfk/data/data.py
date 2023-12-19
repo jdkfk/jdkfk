@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os   
 import sys
+from sklearn.cluster import KMeans
 
 class Dataset:
     
@@ -16,7 +17,10 @@ class Dataset:
                       hist:bool=False,
                       path:str=r'./'):
         """
-        data aggregation
+        data aggregation function.
+
+        describe_data method provides the ability to calculate a number of aggregations
+        for the columns that are contained in the Dataset dataframe. 
 
         Keyword Arguments:
             to_txt -- _description_ (default: {False})
@@ -79,6 +83,19 @@ class Dataset:
             hist:bool=False,
             factor:float=1.5):
         
+        """
+        Interquartile_filter method filters using the interquartile method the passed column. 
+
+        Interquartile_filter method calculates the interquartile outliers from the column passed 
+        as the argument col in order to identify outliers of the regarding parameter.
+
+        Arguments:
+            col -- name of the column to be filtered
+            path -- path on which the histograms are stored (optional)
+            hist -- set to True in order to generate histogram
+            factor -- factor applied to the standard deviation in order to clasify the outliers
+        """        
+
         def _histogram(col):
             if hist:
                 fig, ax = plt.subplots()
@@ -115,6 +132,42 @@ class Dataset:
             _outliers(col)
 
     def normalize(self, col:str):
+        """
+        Normalize columns from the containing dataframe.
+
+        The normalize method from Dataset class normalizes the columns
+        passed as arguments and creates a new normalized column appending 
+        the string _norm at the end of the name of the column. 
+
+        Arguments:
+            col -- name of the column to be normalized
+        """        
         if col in self.df.columns:
             if self.df[col].dtype in ['float64', 'int64']:
-                self.df[f'{col}_norm'] = self.df[col]/abs(self.df[col].max())
+                self.df[f'{col}_norm'] = self.df[col]/max(
+                    abs(self.df[col].max()),
+                    abs(self.df[col].min()))
+
+    def k_means_cluster(self,cols:list,clusters:int=3):
+        """
+        k_means_cluster performs clustering of columns in a number of clusters
+
+        k_means_cluster methods provides the ability to perform a k-means clustering on the 
+        columns passed as an argument cols in a number of clusters equal to argument clusters.
+
+        Arguments:
+            cols -- list of clumns to be clustered
+
+        Keyword Arguments:
+            n_clusters -- number of clusters (default: {3})
+
+        Returns:
+            New column with the clusters result
+        """
+        norm_cols = [f'{col}_norm' for col in cols]
+        cluster_column_name = '_'.join(cols)
+        for col in cols:
+            all.normalize(col)
+        X = all.df.loc[:,norm_cols]
+        kmeans = KMeans(n_clusters=clusters)
+        self.df[f'{cluster_column_name}_cluster']=kmeans.predict(X)
