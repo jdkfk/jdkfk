@@ -167,7 +167,8 @@ class Dataset:
         norm_cols = [f'{col}_norm' for col in cols]
         cluster_column_name = '_'.join(cols)
         for col in cols:
-            all.normalize(col)
-        X = all.df.loc[:,norm_cols]
+            self.normalize(col)
+        X = self.df.loc[:,norm_cols]
         kmeans = KMeans(n_clusters=clusters)
+        kmeans.fit(X)
         self.df[f'{cluster_column_name}_cluster']=kmeans.predict(X)
