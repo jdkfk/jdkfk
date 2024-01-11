@@ -81,7 +81,8 @@ class Dataset:
             col:str,
             path:str=r'./',
             hist:bool=False,
-            factor:float=1.5):
+            factor:float=1.5,
+            group_by:list=[]):
         
         """
         Interquartile_filter method filters using the interquartile method the passed column. 
@@ -94,10 +95,10 @@ class Dataset:
             path -- path on which the histograms are stored (optional)
             hist -- set to True in order to generate histogram
             factor -- factor applied to the standard deviation in order to clasify the outliers
-        """        
+        """
 
         def _histogram(col):
-            if hist:
+            if _hist:
                 fig, ax = plt.subplots()
 
                 ax = sns.histplot(data=self.df, x=col, hue=f'{col}_iqr_outliers')
@@ -110,26 +111,48 @@ class Dataset:
 
                 del(fig)
 
-        def _outliers(col):
-            perc25 = self.df[col].describe()['25%']
-            perc75 = self.df[col].describe()['75%']
-            iqr = (perc75 - perc25) * factor
+        def _outliers(
+            col,
+            group_by:str=''
+        ):
+            outlier_col = f'{col}_iqr_outliers'
+            if outlier_col not in self.df.columns:
+                self.df[outlier_col] = False
+            
+            if group_by=='':
+                perc25 = self.df[col].describe()['25%']
+                perc75 = self.df[col].describe()['75%']
+                iqr = (perc75 - perc25) * factor
+                
+                self.df.loc[
+                    ((self.df[f'{col}']<perc25-iqr) |
+                    (self.df[f'{col}']>perc75+iqr)) &
+                    (self.df[f'{col}']!=0),
+                    outlier_col] = True
+            elif group_by not in self.df.columns:
+                print('The grouping column does not exist within the dataframe')
+            else:
+                for val in self.df[group_by].unique():
+                    perc25 = self.df.loc[self.df[group_by]==val,:][col].describe()['25%']
+                    perc75 = self.df.loc[self.df[group_by]==val,:][col].describe()['75%']
+                    iqr = (perc75 - perc25) * factor
+                    
+                    self.df.loc[
+                        (((self.df[f'{col}']<perc25-iqr) |
+                        (self.df[f'{col}']>perc75+iqr)) &
+                        (self.df[f'{col}']!=0) & 
+                        self.df[group_by]==val),
+                        outlier_col] = True
 
-            self.df[f'{col}_iqr_outliers'] = False
-            self.df.loc[
-                ((self.df[f'{col}']<perc25-iqr) |
-                (self.df[f'{col}']>perc75+iqr)) &
-                (self.df[f'{col}']!=0),
-                f'{col}_iqr_outliers'] = True
+
         
-
-
+        # Check if column is defined and loop over every numeric column if not.
         if col=='':
             for column in [col for col in self.df.columns if col in ['int64', 'float64']]:
-                _outliers(column)
+                _outliers(column,group_by)
         
         else:
-            _outliers(col)
+            _outliers(col, group_by=group_by)
 
     def normalize(
         self,
