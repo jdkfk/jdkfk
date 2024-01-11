@@ -95,10 +95,11 @@ class Dataset:
             path -- path on which the histograms are stored (optional)
             hist -- set to True in order to generate histogram
             factor -- factor applied to the standard deviation in order to clasify the outliers
+            group_by -- column for the grouped calculation
         """
 
         def _histogram(col):
-            if _hist:
+            if hist:
                 fig, ax = plt.subplots()
 
                 ax = sns.histplot(data=self.df, x=col, hue=f'{col}_iqr_outliers')
@@ -108,7 +109,6 @@ class Dataset:
                 except:
                     os.mkdir(r'./figures')
                     fig.savefig(os.path.join(path,f'{col}_iqr_outlier_hist.pdf'))
-
                 del(fig)
 
         def _outliers(
@@ -140,8 +140,11 @@ class Dataset:
                     self.df.loc[
                         (((self.df[f'{col}']<perc25-iqr) |
                         (self.df[f'{col}']>perc75+iqr)) &
-                        (self.df[f'{col}']!=0) & 
-                        self.df[group_by]==val),
+                        (
+                            (self.df[f'{col}']!=0) |
+                            (self.df[col].isna())
+                        ) & 
+                        (self.df[group_by]==val)),
                         outlier_col] = True
 
 
@@ -150,9 +153,11 @@ class Dataset:
         if col=='':
             for column in [col for col in self.df.columns if col in ['int64', 'float64']]:
                 _outliers(column,group_by)
+                _histogram(column)
         
         else:
             _outliers(col, group_by=group_by)
+            _histogram(col)
 
     def normalize(
         self,
