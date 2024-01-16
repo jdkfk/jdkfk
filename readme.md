@@ -7,4 +7,3 @@
 
 - data: *data* contains basically everything related to data analysis (smart naming, innit?).
 - graphs: *graphs* contain... well, graphing tools.
-- hola
