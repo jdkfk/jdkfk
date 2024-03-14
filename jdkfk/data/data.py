@@ -4,6 +4,7 @@ import seaborn as sns
 import os   
 import sys
 from sklearn.cluster import KMeans
+from sklearn.linear_model import LinearRegression
 
 class Dataset:
     
@@ -75,7 +76,6 @@ class Dataset:
         if hist:
             _histograms()
 
-    #interquartile test for sat @ TOFF
     def interquartile_filter(
             self,
             col:str,
@@ -216,3 +216,33 @@ class Dataset:
         kmeans = KMeans(n_clusters=clusters)
         kmeans.fit(_X)
         self.df[f'{cluster_column_name}_cluster']=kmeans.predict(_X)
+
+    def linear_regression(
+        self,
+        X_cols:list,
+        y_col:str):
+        """
+        Linear regression for this library.
+
+        Perform a linear regression as a function of X_cols columns and creates 
+        a new column with the estimation based on the resulting model. 
+
+        Arguments:
+            X_cols -- linear regression variables
+            y_col -- target column
+        """
+        #X_train,y_train,X_test,y_test = train_test_split()
+        model = LinearRegression(fit_intercept=True)
+        all_cols = X_cols + [y_col]
+        _df=self.df.loc[:,all_cols].dropna()
+        X = _df.loc[:,X_cols]
+        y = _df[y_col]
+        model.fit(X,y)
+        _df[f'{y_col}_estim_linear'] = model.predict(X)
+        self.df = pd.merge(
+            self.df,
+            _df.loc[:,f'{y_col}_estim_linear'],
+            right_index=True,
+            left_index=True,
+            how='left')
+        
