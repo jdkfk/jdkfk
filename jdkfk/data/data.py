@@ -5,6 +5,8 @@ import os
 import sys
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+from sklearn.tree import DecisionTreeClassifier
 
 class Dataset:
     
@@ -34,7 +36,7 @@ class Dataset:
                 print(f'Data type: {self.df[col].dtype}')
                 print(f'Non unique values: {self.df[col].nunique()}')
                 print(f'Mode: {self.df[col].mode()}')
-                if pd.api.types.is_numeric_dtype(self.df[col]):
+                if pd.api.types.is_numeric_dtype(self.df[col]): 
                     print(f'mean: {self.df[col].mean()}')
                     print(f'median: {self.df[col].median()}')
                     print(f'min: {self.df[col].min()}')
@@ -246,3 +248,42 @@ class Dataset:
             left_index=True,
             how='left')
         
+    def error(
+        self,
+        col:str):
+        # from sklearn.metrics import mean_absolute_error y programar la función. Estudiar si pudiesen ser necesarias más funciones.
+        #mean_absolute_error(all.df.loc[~all.df.fb_climb.isna(),:].fb_climb,all.df.loc[~all.df.fb_climb.isna(),:].fb_climb_estim_linear)
+        res = mean_absolute_error(
+            self.df[col],
+            self.df[f'{col}_estim_linear']
+        )
+        return mean_absolute_error(self.df[col])
+    
+    def dt_classifier(
+        self,
+        X_cols:list,
+        y_col:str):
+        """
+        Decision tree classifier for this library.
+
+        Perform a decision tree classification as a function of X_cols columns and creates 
+        a new column with the estimation based on the resulting model. 
+
+        Arguments:
+            X_cols -- classification variables
+            y_col -- target column
+        """
+        #X_train,y_train,X_test,y_test = train_test_split()
+        model = DecisionTreeClassifier(random_state=0)
+        all_cols = X_cols + [y_col]
+        _df=self.df.loc[:,all_cols].dropna()
+        X = _df.loc[:,X_cols]
+        y = _df[y_col]
+        model.fit(X,y)
+        _df[f'{y_col}_dt_clasif'] = model.predict(X)
+        self.df = pd.merge(
+            self.df,
+            _df.loc[:,f'{y_col}_dt_clasif'],
+            right_index=True,
+            left_index=True,
+            how='left')
