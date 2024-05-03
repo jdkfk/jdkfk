@@ -6,8 +6,8 @@ import pandas as pd
 class TestDataset(unittest.TestCase):
 
     def setUp(self):
-
-        self.dataset = Dataset()
+        df = pd.read_csv('insurance.csv')
+        self.dataset = Dataset(df)
     
 
     def test_Dataset(self):
